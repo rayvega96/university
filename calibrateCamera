@@ -1,0 +1,56 @@
+import numpy as np
+
+def estimate_camera_matrix(image_points, object_points, image_size):
+    """
+    Estimates the camera matrix K using the Zhang's method.
+
+    Args:
+        image_points (list): List of arrays containing the image coordinates of the calibration pattern.
+        object_points (list): List of arrays containing the object coordinates of the calibration pattern.
+        image_size (tuple): Tuple containing the dimensions of the images used for calibration.
+
+    Returns:
+        numpy.ndarray: The estimated camera matrix K.
+    """
+    # Compute the number of images and points
+    num_images = len(image_points)
+    num_points = len(object_points[0])
+
+    # Create the matrices A and B
+    A = np.zeros((2*num_points*num_images, 6))
+    B = np.zeros((2*num_points*num_images, 1))
+
+    # Fill in the matrices A and B
+    for i in range(num_images):
+        for j in range(num_points):
+            X = object_points[i][j][0]
+            Y = object_points[i][j][1]
+            x = image_points[i][j][0]
+            y = image_points[i][j][1]
+
+            A[2*num_points*i+2*j, :] = [X, Y, 1, 0, 0, 0]
+            A[2*num_points*i+2*j+1, :] = [0, 0, 0, X, Y, 1]
+            B[2*num_points*i+2*j, 0] = x
+            B[2*num_points*i+2*j+1, 0] = y
+
+    # Solve the linear system Ax = B
+    x, _, _, _ = np.linalg.lstsq(A, B, rcond=None)
+
+    # Build the camera matrix K
+    K = np.zeros((3, 3))
+    K[0, 0] = x[0]
+    K[0, 1] = x[1]
+    K[0, 2] = x[2]
+    K[1, 1] = x[3]
+    K[1, 2] = x[4]
+    K[2, 2] = x[5]
+    K[2, 1] = K[1, 2]
+
+    # Normalize the matrix
+    K /= K[2, 2]
+
+    # Print the final matrix
+    print("Camera matrix K:")
+    print(K)
+
+    return K
